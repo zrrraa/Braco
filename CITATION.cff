@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use Braco, please cite our paper on arXiv."
+title: "Beyond Selection: Token Parameterization for Extreme Visual Token Compression"
+type: software
+authors:
+  - family-names: Zhong
+    given-names: Rui
+    affiliation: Zhejiang University
+  - family-names: Li
+    given-names: Yu
+    affiliation: Zhejiang University
+  - family-names: Yan
+    given-names: Zheyu
+    affiliation: Zhejiang University
+  - family-names: Zhuo
+    given-names: Cheng
+    affiliation: Zhejiang University
+repository-code: "https://github.com/zrrraa/Braco"
+license: Apache-2.0
+preferred-citation:
+  type: article
+  title: "Beyond Selection: Token Parameterization for Extreme Visual Token Compression"
+  authors:
+    - family-names: Zhong
+      given-names: Rui
+    - family-names: Li
+      given-names: Yu
+    - family-names: Yan
+      given-names: Zheyu
+    - family-names: Zhuo
+      given-names: Cheng
+  journal: "arXiv preprint arXiv:2609.35232"
+  year: 2026
+  doi: "10.48550/arXiv.2609.35232"
+  url: "https://arxiv.org/abs/2609.35232"

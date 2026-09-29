@@ -1,0 +1,9 @@
+gqa
+mmbench_en
+mmbench_cn
+mme
+pope
+scienceqa
+textvqa
+mmvet
+

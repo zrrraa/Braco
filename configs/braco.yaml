@@ -1,0 +1,49 @@
+schema_version: 1
+experiment: braco_llava_v1_5_7b
+native_visual_tokens: 576
+grid: [24, 24]
+vision_feature_layer: -2
+seed: 0
+budgets: [25, 16, 9, 4]
+
+training:
+  stage1:
+    dataset: LLaVA-Pretrain/blip_laion_cc_sbu_558k.json
+    images: LLaVA-Pretrain/images
+    epochs: 1
+    expected_steps: 2181
+    global_batch_size: 256
+    learning_rate: 0.001
+    warmup_ratio: 0.03
+    scheduler: cosine
+    frozen: [vision_encoder, language_model]
+  stage2:
+    dataset: LLaVA-Instruct/llava_v1_5_mix665k.json
+    images: LLaVA-Instruct/images
+    epochs: 1
+    expected_steps: 5198
+    global_batch_size: 128
+    learning_rate: 0.00002
+    warmup_ratio: 0.03
+    scheduler: cosine
+    frozen: [vision_encoder]
+
+methods:
+  braco:
+    family: transform_plus_spatial_residual
+    boundary: pre_projector
+    post_concat_norm: false
+    budgets: [25, 16, 9, 4]
+    split:
+      4:  {C: 1, S: 3, low_idct: false}
+      9:  {C: 2, S: 5, low_idct: false}
+      16: {C: 3, S: 7, low_idct: false}
+      25: {C: 4, S: 9, low_idct: true}
+
+evaluation:
+  benchmarks: [gqa, mmbench_en, mmbench_cn, mme, pope, scienceqa, textvqa, mmvet]
+  efficiency:
+    batch_size: 1
+    warmup_iterations: 20
+    measured_iterations: 100
+    device: single_a100
