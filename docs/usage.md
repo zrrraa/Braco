@@ -59,6 +59,14 @@ The Braco compressor and multimodal projector are optimized in both stages;
 the language model is also optimized in stage 2. The settings above use
 eight training GPUs. Each token budget has its own trained checkpoint.
 
+`GRAD_ACCUM_STEPS` controls gradient accumulation in both stages (default: `1`).
+With four GPUs, use `2` to retain global batch sizes of 256 and 128:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 GRAD_ACCUM_STEPS=2 \
+  bash scripts/train_braco.sh 9 0
+```
+
 Spatial residual tokens pass through LayerNorm and a learned scale before
 concatenation with the DCT backbone and projection into the LLM.
 The sparsemax temperature follows a cosine schedule: 2.0 to 1.2 over 2180
@@ -73,6 +81,13 @@ GQA, MMBench-EN/CN, MME, POPE, ScienceQA, TextVQA, and MMVet.
 Answers and available local scores are saved beneath the run's `evaluation/`
 directory. The launcher creates a `llava-braco` symlink to the stage-2 checkpoint
 for LLaVA's model-family detection.
+
+Use the following metrics when reading the evaluator output:
+
+- **ScienceQA:** image-subset accuracy (`IMG-Accuracy`).
+- **MME All:** the sum of the Perception and Cognition total scores.
+- **POPE:** F1 expressed as a percentage; the evaluator reports the random,
+  popular, and adversarial subsets separately.
 
 For MMBench, the launcher creates the official upload artifacts. For MMVet,
 it creates the answer JSON for the official judge-based evaluator. Complete

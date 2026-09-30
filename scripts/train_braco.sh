@@ -7,6 +7,12 @@ SEED="${2:?Usage: scripts/train_braco.sh BUDGET SEED}"
 check_budget "${BUDGET}"
 set_repro_seed "${SEED}"
 
+GRAD_ACCUM_STEPS="${GRAD_ACCUM_STEPS:-1}"
+if [[ ! "${GRAD_ACCUM_STEPS}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "GRAD_ACCUM_STEPS must be a positive integer" >&2
+  exit 2
+fi
+
 case "${BUDGET}" in
   4)  C=1; S=3; LOW_IDCT=False ;;
   9)  C=2; S=5; LOW_IDCT=False ;;
@@ -27,6 +33,7 @@ require_file "${DATA_ROOT}/LLaVA-Pretrain/blip_laion_cc_sbu_558k.json"
 require_file "${DATA_ROOT}/LLaVA-Instruct/llava_v1_5_mix665k.json"
 record_environment "${RUN_ROOT}/metadata"
 
+export PYTHONPATH="${REPO}${PYTHONPATH:+:${PYTHONPATH}}"
 cd "${REPO}"
 
 deepspeed llava/train/train_mem.py \
@@ -60,7 +67,7 @@ deepspeed llava/train/train_mem.py \
   --output_dir "${STAGE1}" \
   --num_train_epochs 1 \
   --per_device_train_batch_size 32 \
-  --gradient_accumulation_steps 1 \
+  --gradient_accumulation_steps "${GRAD_ACCUM_STEPS}" \
   --evaluation_strategy no \
   --save_strategy steps \
   --save_steps 500 \
@@ -114,7 +121,7 @@ deepspeed llava/train/train_mem.py \
   --output_dir "${STAGE2}" \
   --num_train_epochs 1 \
   --per_device_train_batch_size 16 \
-  --gradient_accumulation_steps 1 \
+  --gradient_accumulation_steps "${GRAD_ACCUM_STEPS}" \
   --evaluation_strategy no \
   --save_strategy steps \
   --save_steps 500 \
