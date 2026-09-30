@@ -15,13 +15,13 @@
 </p>
 
 <p align="center">
-  <a href="https://zrrraa.github.io/Braco/"><img src="https://img.shields.io/badge/Project_Page-345D9D?style=for-the-badge&logo=github&logoColor=white" width="183" height="36" alt="Project page"></a>
-  <a href="https://arxiv.org/abs/2609.35232"><img src="https://img.shields.io/badge/arXiv-B31B1B?style=for-the-badge&logo=arxiv&logoColor=white" width="111" height="36" alt="arXiv paper 2609.35232"></a>
-  <a href="https://huggingface.co/papers/2609.35232"><img src="https://img.shields.io/badge/Hugging_Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" width="186" height="36" alt="Hugging Face paper"></a>
+  <a href="https://zrrraa.github.io/Braco/"><img src="https://img.shields.io/badge/Project-Page-345D9D?logo=github&logoColor=white" alt="Project page"></a>
+  <a href="https://arxiv.org/abs/2609.35232"><img src="https://img.shields.io/badge/arXiv-2609.35232-b31b1b?logo=arxiv&logoColor=white" alt="arXiv paper 2609.35232"></a>
+  <a href="https://huggingface.co/papers/2609.35232"><img src="https://img.shields.io/badge/Hugging_Face-Paper-FFD21E?logo=huggingface&logoColor=white" alt="Hugging Face paper"></a>
   <br>
-  <a href="https://github.com/zrrraa/Braco"><img src="https://img.shields.io/badge/NeurIPS_2026-Spotlight-7856A6?style=for-the-badge" width="273" height="36" alt="NeurIPS 2026 Spotlight"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/Apache_2.0-1565C0?style=for-the-badge" width="132" height="36" alt="Apache-2.0 license"></a>
-  <a href="src/braco/compressor.py"><img src="https://img.shields.io/badge/PyTorch-303030?style=for-the-badge&logo=pytorch&logoColor=EE4C2C" width="136" height="36" alt="PyTorch implementation"></a>
+  <a href="https://github.com/zrrraa/Braco"><img src="https://img.shields.io/badge/NeurIPS_2026-Spotlight-7856A6" alt="NeurIPS 2026 Spotlight"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue" alt="Apache-2.0 license"></a>
+  <a href="src/braco/compressor.py"><img src="https://img.shields.io/badge/Framework-PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch implementation"></a>
 </p>
 
 ## 🔍 Overview
