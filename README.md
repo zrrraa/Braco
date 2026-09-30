@@ -18,6 +18,7 @@
   <a href="https://zrrraa.github.io/Braco/"><img src="https://img.shields.io/badge/Project-Page-345D9D" alt="Project page"></a>
   <a href="https://github.com/zrrraa/Braco"><img src="https://img.shields.io/badge/NeurIPS_2026-Spotlight-7856A6" alt="NeurIPS 2026 Spotlight"></a>
   <a href="https://arxiv.org/abs/2609.35232"><img src="https://img.shields.io/badge/arXiv-2609.35232-b31b1b" alt="arXiv paper"></a>
+  <a href="https://huggingface.co/papers/2609.35232"><img src="https://img.shields.io/badge/Hugging_Face-Paper-FFD21E?logo=huggingface&logoColor=black" alt="Hugging Face paper"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue" alt="Apache-2.0 license"></a>
   <a href="src/braco/compressor.py"><img src="https://img.shields.io/badge/Framework-PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch implementation"></a>
 </p>
