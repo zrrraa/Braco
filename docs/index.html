@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>
+      Braco — Beyond Selection: Token Parameterization for Extreme Visual Token
+      Compression
+    </title>
+    <meta
+      name="description"
+      content="Braco: a lightweight visual-token compressor that turns 576 tokens into 4–25. Beyond Selection: Token Parameterization for Extreme Visual Token Compression. NeurIPS 2026 Spotlight, Zhejiang University."
+    />
+    <link rel="canonical" href="https://zrrraa.github.io/Braco/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Braco — Beyond Selection" />
+    <meta
+      property="og:description"
+      content="Token Parameterization for Extreme Visual Token Compression · NeurIPS 2026 Spotlight · Zhejiang University"
+    />
+    <meta property="og:url" content="https://zrrraa.github.io/Braco/" />
+    <meta
+      property="og:image"
+      content="https://zrrraa.github.io/Braco/assets/overview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="citation_title"
+      content="Beyond Selection: Token Parameterization for Extreme Visual Token Compression"
+    />
+    <meta name="citation_author" content="Rui Zhong" />
+    <meta name="citation_author" content="Yu Li" />
+    <meta name="citation_author" content="Zheyu Yan" />
+    <meta name="citation_author" content="Cheng Zhuo" />
+    <meta name="citation_publication_date" content="2026" />
+    <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2609.35232" />
+    <link rel="icon" href="assets/braco-illustration.png" type="image/png" />
+    <link rel="stylesheet" href="assets/site.css?v=9" />
+    <script src="assets/site.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ScholarlyArticle",
+        "name": "Beyond Selection: Token Parameterization for Extreme Visual Token Compression",
+        "alternateName": "Braco",
+        "url": "https://arxiv.org/abs/2609.35232",
+        "sameAs": "https://zrrraa.github.io/Braco/",
+        "author": [
+          {
+            "@type": "Person",
+            "name": "Rui Zhong",
+            "affiliation": {
+              "@type": "Organization",
+              "name": "Zhejiang University"
+            }
+          },
+          {
+            "@type": "Person",
+            "name": "Yu Li",
+            "affiliation": {
+              "@type": "Organization",
+              "name": "Zhejiang University"
+            }
+          },
+          {
+            "@type": "Person",
+            "name": "Zheyu Yan",
+            "affiliation": {
+              "@type": "Organization",
+              "name": "Zhejiang University"
+            }
+          },
+          {
+            "@type": "Person",
+            "name": "Cheng Zhuo",
+            "affiliation": {
+              "@type": "Organization",
+              "name": "Zhejiang University"
+            }
+          }
+        ],
+        "keywords": [
+          "visual token compression",
+          "vision-language models",
+          "token parameterization",
+          "Braco"
+        ],
+        "encoding": {
+          "@type": "MediaObject",
+          "contentUrl": "https://arxiv.org/pdf/2609.35232",
+          "encodingFormat": "application/pdf"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <main id="main">
+      <header class="paper-header">
+        <img
+          class="project-illustration"
+          src="assets/braco-illustration.png"
+          width="1254"
+          height="1254"
+          fetchpriority="high"
+          alt="A playful clay illustration of Braco transforming a visual-token landscape with a compact backbone and a spatial residual path."
+        />
+        <h1>
+          Beyond Selection: Token Parameterization for Extreme Visual Token
+          Compression
+        </h1>
+        <p class="venue">
+          <span aria-hidden="true">🌟</span> NeurIPS 2026 <span>(Spotlight)</span>
+        </p>
+        <div class="authors">
+          <a href="mailto:rzhong@zju.edu.cn">Rui Zhong</a>
+          <a href="mailto:li.yu@zju.edu.cn">Yu Li</a>
+          <a href="mailto:zyan2@zju.edu.cn">Zheyu Yan<sup>*</sup></a>
+          <a href="mailto:czhuo@zju.edu.cn">Cheng Zhuo</a>
+        </div>
+        <p class="affiliation">Zhejiang University</p>
+        <p class="corresponding"><sup>*</sup> Corresponding author</p>
+        <div class="resource-links">
+          <a
+            class="button"
+            href="https://arxiv.org/pdf/2609.35232"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6"
+              /></svg
+            >Paper</a
+          >
+          <a
+            class="button"
+            href="https://arxiv.org/abs/2609.35232"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg viewBox="0 0 24 24" class="filled-icon" aria-hidden="true">
+              <path
+                d="M3.8423 0a1.0037 1.0037 0 0 0-.922.6078c-.1536.3687-.0438.6275.2938 1.1113l6.9185 8.3597-1.0223 1.1058a1.0393 1.0393 0 0 0 .003 1.4229l1.2292 1.3135-5.4391 6.4444c-.2803.299-.4538.823-.2971 1.1986a1.0253 1.0253 0 0 0 .9585.635.9133.9133 0 0 0 .6891-.3405l5.783-6.126 7.4902 8.0051a.8527.8527 0 0 0 .6835.2597.9575.9575 0 0 0 .8777-.6138c.1577-.377-.017-.7502-.306-1.1407l-7.0518-8.3418 1.0632-1.13a.9626.9626 0 0 0 .0089-1.3165L4.6336.4639s-.3733-.4535-.768-.463zm0 .272h.0166c.2179.0052.4874.2715.5644.3639l.005.006.0052.0055 10.169 10.9905a.6915.6915 0 0 1-.0072.945l-1.0666 1.133-1.4982-1.7724-8.5994-10.39c-.3286-.472-.352-.6183-.2592-.841a.7307.7307 0 0 1 .6704-.4401Zm14.341 1.5701a.877.877 0 0 0-.6554.2418l-5.6962 6.1584 1.6944 1.8319 5.3089-6.5138c.3251-.4335.479-.6603.3247-1.0292a1.1205 1.1205 0 0 0-.9763-.689zm-7.6557 12.2823 1.3186 1.4135-5.7864 6.1295a.6494.6494 0 0 1-.4959.26.7516.7516 0 0 1-.706-.4669c-.1119-.2682.0359-.6864.2442-.9083l.0051-.0055.0047-.0055z"
+              /></svg
+            >arXiv</a
+          >
+          <a
+            class="button"
+            href="https://huggingface.co/papers/2609.35232"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><span aria-hidden="true">🤗</span>Hugging Face</a
+          >
+          <a
+            class="button"
+            href="https://github.com/zrrraa/Braco"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><svg viewBox="0 0 24 24" class="filled-icon" aria-hidden="true">
+              <path
+                d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.77-.24.77-.54v-2.08c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.64-1.25-1.64-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.62 1.22 3.26.93.1-.73.4-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.54 0-1.22.44-2.22 1.15-3-.11-.29-.5-1.43.11-2.97 0 0 .95-.3 3.08 1.15a10.67 10.67 0 0 1 5.61 0c2.14-1.45 3.08-1.15 3.08-1.15.62 1.54.23 2.68.12 2.97.72.78 1.15 1.78 1.15 3 0 4.3-2.63 5.25-5.14 5.53.4.35.76 1.03.76 2.08v3.08c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z"
+              /></svg
+            >Code</a
+          >
+        </div>
+      </header>
+
+      <figure class="overview figure-width">
+        <a
+          href="assets/overview.png"
+          target="_blank"
+          rel="noopener"
+          aria-label="Open the overview figure at full resolution"
+        >
+          <img
+            src="assets/overview.png"
+            width="3336"
+            height="1678"
+            alt="Token parameterization separates basis transformation and structured truncation from coordinate organization, addressing compressibility and learnability."
+          />
+        </a>
+        <figcaption>
+          Braco formulates extreme visual-token compression as a token
+          parameterization problem, jointly addressing compressibility and
+          learnability.
+        </figcaption>
+      </figure>
+
+      <section
+        class="paper-section text-width"
+        id="abstract"
+        aria-labelledby="abstract-title"
+      >
+        <h2 id="abstract-title">Abstract</h2>
+        <p>
+          Visual-token compression is effective for improving the efficiency of
+          vision-language models, but under extreme compression budgets, token
+          pruning can break visual grounding while learned resamplers increase
+          parameter count, attention cost, and training complexity. We revisit
+          compression through a
+          <strong>token parameterization</strong> lens, separating (i)
+          <em>basis transformation and structured truncation</em> (retained
+          subspace/compressibility) from (ii)
+          <em>coordinate organization</em> (optimization and cross-modal
+          alignment). This view yields two coupled objectives,
+          <em>compressibility</em> and <em>learnability</em>, which we formalize
+          as unified functionals. Guided by these objectives, we design
+          <strong>Braco</strong>, a lightweight four-step coder that combines
+          transform-basis truncation, input-independent basis-coordinate
+          embeddings, budget-dependent orthogonal re-parameterization, and
+          learned spatial residual tokens from lightweight pooling. Experiments
+          show that Braco forms the favorable empirical accuracy-efficiency
+          frontier under 23×–64× compression and remains competitive at 144×,
+          reaching 95.2% accuracy while reducing prefill FLOPs by 84.2%–86.7%
+          relative to the uncompressed upper bound. Against prior methods, Braco
+          matches or improves accuracy while achieving up to a ∼36% end-to-end
+          speedup and using 16.6×/78.8× lower compressor latency/FLOPs.
+        </p>
+      </section>
+
+      <section
+        class="paper-section text-width"
+        id="parameterization"
+        aria-labelledby="parameterization-title"
+      >
+        <h2 id="parameterization-title">Token Parameterization</h2>
+        <p>
+          We introduce a token-parameterization view of extreme visual-token
+          compression.
+          For a visual-token field <span class="math">X</span>, we parameterize
+          the compressed representation <span class="math">Z</span> through
+          three choices:
+        </p>
+        <div
+          class="equation"
+          role="math"
+          aria-label="Z equals A times P subscript S times U subscript B times X"
+        >
+          <span>Z = A P<sub>𝒮</sub> U<sub>B</sub> X</span>
+        </div>
+        <p>
+          The orthonormal basis <span class="math">B</span> re-expresses the
+          visual-token field, the structured set
+          <span class="math">𝒮</span> selects the retained transform
+          coordinates, and the orthogonal matrix
+          <span class="math">A</span> reorganizes coordinates within that
+          retained subspace.
+        </p>
+        <p>
+          Varying <span class="math">(B, 𝒮)</span> tests information
+          preservation, while varying <span class="math">A</span> with
+          <span class="math">(B, 𝒮)</span> fixed tests optimization and alignment.
+        </p>
+      </section>
+      <section
+        class="paper-section"
+        id="design-analysis"
+        aria-labelledby="design-analysis-title"
+      >
+        <h2 id="design-analysis-title">Compressibility and Learnability</h2>
+        <p class="text-width section-lead">
+          <strong>Compressibility</strong> combines energy retention with
+          task-direction readability to assess how much useful information
+          survives a fixed, structured truncation.
+          <strong>Learnability</strong> combines statistical conditioning with
+          geometric compatibility to assess how well the retained coordinates
+          support downstream optimization.
+        </p>
+        <div class="figure-width figure-grid diagnostic-grid">
+          <figure>
+            <a
+              href="assets/energy-structured.png"
+              target="_blank"
+              rel="noopener"
+              aria-label="Open energy retention under structured truncation at full resolution"
+              ><img
+                src="assets/energy-structured.png"
+                width="1278"
+                height="880"
+                alt="Energy retention under structured truncation"
+            /></a>
+            <figcaption>(a) Structured truncation</figcaption>
+          </figure>
+          <figure>
+            <a
+              href="assets/energy-magnitude.png"
+              target="_blank"
+              rel="noopener"
+              aria-label="Open energy retention under magnitude truncation at full resolution"
+              ><img
+                src="assets/energy-magnitude.png"
+                width="1321"
+                height="880"
+                alt="Energy retention under magnitude truncation"
+            /></a>
+            <figcaption>(b) Magnitude truncation</figcaption>
+          </figure>
+          <figure>
+            <a
+              href="assets/coordinate-loss.png"
+              target="_blank"
+              rel="noopener"
+              aria-label="Open development loss for coefficient, inverse-dct, and random-rotation coordinates at full resolution"
+              ><img
+                src="assets/coordinate-loss.png"
+                width="1236"
+                height="735"
+                alt="Development loss for coefficient, inverse-DCT, and random-rotation coordinates"
+            /></a>
+            <figcaption>(c) Coordinate organization</figcaption>
+          </figure>
+        </div>
+        <div class="text-width section-copy">
+          <h3>Basis choice determines what a small interface retains</h3>
+          <p>
+            Under structured truncation, DCT and Haar retain far more energy
+            than spatial or random bases: approximately 0.51 versus 0.04 at 32
+            tokens, and 0.57 versus 0.08 at 64 tokens. The gap largely
+            disappears under magnitude truncation, showing that the fixed,
+            deployable ordering matters. KLT is an oracle reference fitted to
+            the diagnostic token second moment.
+          </p>
+          <p>
+            CelebA linear probes additionally test task-readability on frozen
+            patch tokens. DCT reaches 91.6% versus 89.8% for spatial coordinates
+            at one token, and 92.5% versus 90.9% at four tokens. DCT gives the
+            most favorable empirical combination of energy concentration,
+            task readability, and implementation simplicity in these
+            diagnostics.
+          </p>
+          <h3>The same retained information can be easier to learn</h3>
+          <p>
+            With the same low-frequency DCT subspace fixed, we vary only its
+            coordinates: coefficient tokens, an inverse-DCT coarse spatial grid,
+            or a random orthogonal rotation. At a backbone budget of four
+            tokens, only coefficient coordinates reach the held-out
+            development-loss target of 2.50. At 16 and 64 backbone tokens,
+            inverse DCT reaches the target 18% and 60% faster, respectively.
+          </p>
+          <p>
+            These results agree with the learnability objective: coefficient
+            coordinates are favored when statistical conditioning dominates at
+            very small backbone budgets, while the coarse grid becomes
+            preferable once geometric compatibility dominates.
+          </p>
+        </div>
+      </section>
+      <section class="paper-section" id="method" aria-labelledby="method-title">
+        <h2 id="method-title">Method</h2>
+        <p class="text-width section-lead">
+          Guided by the compressibility and learnability analysis, Braco
+          compresses visual tokens through four steps:
+        </p>
+        <figure class="figure-width">
+          <a
+            href="assets/method.png"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open the method figure at full resolution"
+          >
+            <img
+              src="assets/method.png"
+              width="3551"
+              height="1130"
+              alt="The four steps of Braco: basis choice, position embedding, coordinate organization, and spatial residual connection."
+            />
+          </a>
+          <figcaption>
+            Braco's four-step token coding pipeline.
+          </figcaption>
+        </figure>
+        <div class="text-width method-description">
+          <p>
+            <strong>1. Basis Choice.</strong> Apply a 2D DCT to the visual-token
+            lattice and apply structured truncation, concentrating
+            task-relevant information into a compact transform-domain backbone.
+          </p>
+          <p>
+            <strong>2. Position Embedding.</strong> Add input-independent
+            basis-coordinate embeddings to the retained transform tokens,
+            providing stable indexing cues for downstream multimodal fusion.
+          </p>
+          <p>
+            <strong>3. Coordinate Organization.</strong> Represent the same
+            retained subspace as coefficient tokens at very small backbone
+            budgets, or as an inverse-DCT coarse spatial grid at larger budgets,
+            balancing statistical conditioning and geometric compatibility.
+          </p>
+          <p>
+            <strong>4. Residual Connection.</strong> In parallel, generate a
+            small set of learned spatial residual tokens through lightweight
+            sparse pooling over the original spatial grid. Concatenate them
+            with the backbone tokens to recover localized details beyond the
+            backbone.
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="paper-section"
+        id="results"
+        aria-labelledby="results-title"
+      >
+        <h2 id="results-title">Main Results</h2>
+        <div class="text-width">
+          <h3>Comparison under matched visual-token budgets</h3>
+          <p>
+            We now evaluate Braco end-to-end on LLaVA-1.5-7B across eight benchmarks under
+            matched retained-token budgets. Braco attains the highest aggregate
+            Acc. among the evaluated methods at 25, 16, and 9 tokens, and
+            remains within 0.2 Acc. of QueCC at four tokens while using lower
+            FLOPs and substantially lower latency. Across 4–25 tokens,
+            it retains 91.2–95.2 Vanilla-normalized Acc. while reducing
+            full-pipeline prefill FLOPs from 8.67T to 1.09–1.37T. At 16 and
+            9 tokens, Braco matches QueCC within 0.1 Acc. while reducing
+            latency by about 36%.
+          </p>
+        </div>
+        <figure class="text-width result-figure">
+          <a
+            href="assets/table-1.png?v=2"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open Table 1 at full resolution"
+          >
+            <img
+              src="assets/table-1.png?v=2"
+              width="1592"
+              height="1404"
+              loading="lazy"
+              alt="Table 1 from the paper: eight benchmark scores, aggregate accuracy, full-pipeline prefill FLOPs, and latency for all methods at 25, 16, 9, and 4 visual tokens."
+            />
+          </a>
+          <figcaption>
+            <strong>Table 1. Main results under matched visual-token budgets.</strong>
+            Acc. is the mean benchmark score normalized by the 576-token Vanilla
+            model (higher is better). FLOPs and latency measure single-image
+            full-pipeline prefill (lower is better). QueCC is omitted at 25 tokens
+            because its native grid does not support a 5 × 5 output on the fixed
+            24 × 24 visual-token lattice.
+          </figcaption>
+        </figure>
+        <div class="text-width section-copy" id="efficiency">
+          <h3>Compressor cost at 16 tokens</h3>
+          <p>
+            Isolating the compression module, Braco matches QueCC's accuracy
+            with <strong>16.6× lower module latency</strong> and
+            <strong>78.8× fewer compressor FLOPs</strong>. Braco also achieves
+            substantially lower post-projector FLOPs than TokenPacker and
+            DivPrune.
+          </p>
+        </div>
+        <figure class="text-width result-figure compressor-figure">
+          <a
+            href="assets/table-2.png?v=2"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open Table 2 at full resolution"
+          >
+            <img
+              src="assets/table-2.png?v=2"
+              width="1208"
+              height="440"
+              loading="lazy"
+              alt="Table 2 from the paper: standalone compressor latency, FLOPs, and memory at 16 retained tokens, measured before or after the projector."
+            />
+          </a>
+          <figcaption>
+            <strong>Table 2. Compressor cost at 16 tokens.</strong>
+            Boundary denotes pre- or post-projector measurement.
+          </figcaption>
+        </figure>
+      </section>
+      <section
+        class="paper-section citation text-width"
+        id="citation"
+        aria-labelledby="citation-title"
+      >
+        <div class="citation-heading">
+          <h2 id="citation-title">BibTeX</h2>
+          <button class="copy-button" id="copy-citation" type="button" hidden>
+            <span>Copy citation</span>
+          </button>
+        </div>
+        <pre><code id="bibtex">@misc{zhong2026braco,
+  title         = {Beyond Selection: Token Parameterization for Extreme Visual Token Compression},
+  author        = {Zhong, Rui and Li, Yu and Yan, Zheyu and Zhuo, Cheng},
+  year          = {2026},
+  eprint        = {2609.35232},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2609.35232}
+}</code></pre>
+        <p
+          id="copy-status"
+          class="copy-status"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </section>
+    </main>
+    <footer>
+      Page layout inspired by
+      <a
+        href="https://nerfies.github.io/"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Nerfies</a
+      >.
+    </footer>
+  </body>
+</html>
