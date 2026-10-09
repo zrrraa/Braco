@@ -54,7 +54,8 @@ class BracoCompressor(nn.Module):
         coordinate_mode: Return DCT coefficients directly, or organize the
             retained subspace with a small inverse DCT.
         residual_hidden_multiplier: Hidden width of the residual scorer,
-            expressed as a multiple of ``dim``.
+            expressed as a multiple of ``dim``. Nonpositive values use a
+            LayerNorm followed by a single linear layer.
         polar_frequencies: Number of radial/angular frequency bands used by
             the basis-coordinate embedding.
         polar_include_raw: Include ``[r, sin(theta), cos(theta)]`` alongside
@@ -123,21 +124,28 @@ class BracoCompressor(nn.Module):
         self.polar_projection = nn.Linear(polar_dim, self.dim, bias=False)
         self.polar_scale = nn.Parameter(torch.tensor(float(polar_scale)))
 
+        self.residual_norm = nn.LayerNorm(self.dim)
+        self.residual_scale = nn.Parameter(
+            torch.tensor(float(residual_scale))
+        )
+        self.residual_prior_scale = nn.Parameter(
+            torch.tensor(float(residual_prior_scale))
+        )
+
         if self.residual_tokens:
-            hidden_dim = max(1, self.dim * int(residual_hidden_multiplier))
-            self.residual_scorer = nn.Sequential(
-                nn.LayerNorm(self.dim),
-                nn.Linear(self.dim, hidden_dim),
-                nn.GELU(),
-                nn.Linear(hidden_dim, self.residual_tokens),
-            )
-            self.residual_norm = nn.LayerNorm(self.dim)
-            self.residual_scale = nn.Parameter(
-                torch.tensor(float(residual_scale))
-            )
-            self.residual_prior_scale = nn.Parameter(
-                torch.tensor(float(residual_prior_scale))
-            )
+            if int(residual_hidden_multiplier) <= 0:
+                self.residual_scorer = nn.Sequential(
+                    nn.LayerNorm(self.dim),
+                    nn.Linear(self.dim, self.residual_tokens),
+                )
+            else:
+                hidden_dim = max(1, self.dim * int(residual_hidden_multiplier))
+                self.residual_scorer = nn.Sequential(
+                    nn.LayerNorm(self.dim),
+                    nn.Linear(self.dim, hidden_dim),
+                    nn.GELU(),
+                    nn.Linear(hidden_dim, self.residual_tokens),
+                )
 
         if self.post_concat_norm:
             self.post_norm = nn.LayerNorm(
@@ -243,31 +251,34 @@ class BracoCompressor(nn.Module):
         rows = row.expand(side, side)
         cols = col.expand(side, side)
 
-        radius = torch.sqrt(rows.square() + cols.square())
-        radius = radius / max(math.sqrt(2.0) * (side - 1), 1.0)
+        radius = torch.sqrt(rows * rows + cols * cols)
+        radius_max = torch.sqrt(torch.tensor(
+            float((side - 1) * (side - 1) * 2),
+            device=device, dtype=torch.float32,
+        )).clamp(min=1.0)
+        radius = radius / radius_max
         angle = torch.atan2(cols, rows)
         angle = torch.where(
             (rows == 0) & (cols == 0), torch.zeros_like(angle), angle
         )
 
-        bands = 2.0 ** torch.arange(
+        bands = (2.0 ** torch.arange(
             self.polar_frequencies, device=device, dtype=torch.float32
+        )).view(1, 1, self.polar_frequencies)
+        radial_phase = (torch.pi * bands) * radius.unsqueeze(-1)
+        radial_features = torch.cat(
+            (radial_phase.sin(), radial_phase.cos()), dim=-1
         )
-        radial_phase = math.pi * radius.unsqueeze(-1) * bands
-        angular_phase = angle.unsqueeze(-1) * bands
+        angular_phase = bands * angle.unsqueeze(-1)
+        angular_features = torch.cat(
+            (angular_phase.sin(), angular_phase.cos()), dim=-1
+        )
         features = []
         if self.polar_include_raw:
             features.append(
                 torch.stack((radius, angle.sin(), angle.cos()), dim=-1)
             )
-        features.extend(
-            (
-                radial_phase.sin(),
-                radial_phase.cos(),
-                angular_phase.sin(),
-                angular_phase.cos(),
-            )
-        )
+        features.extend((radial_features, angular_features))
         self._polar_features = torch.cat(features, dim=-1)
         return self._polar_features
 
@@ -277,8 +288,8 @@ class BracoCompressor(nn.Module):
         grid = tokens.view(batch, side, side, dim).float()
         vertical = grid[:, 1:, :, :] - grid[:, :-1, :, :]
         horizontal = grid[:, :, 1:, :] - grid[:, :, :-1, :]
-        vertical_energy = vertical.square().sum(dim=-1)
-        horizontal_energy = horizontal.square().sum(dim=-1)
+        vertical_energy = (vertical * vertical).sum(dim=-1)
+        horizontal_energy = (horizontal * horizontal).sum(dim=-1)
 
         energy = grid.new_zeros((batch, side, side))
         energy[:, 1:, :] += vertical_energy
@@ -296,8 +307,10 @@ class BracoCompressor(nn.Module):
             energy.std(dim=-1, keepdim=True) + 1e-6
         )
         logits = logits + self.residual_prior_scale.to(logits.dtype) * energy.unsqueeze(1).to(logits.dtype)
-        logits = (logits / max(float(self.temperature.item()), 1e-6)).float()
-        weights = sparsemax(logits, dim=-1).to(tokens.dtype)
+        normalized_logits = (
+            logits / max(float(self.temperature.item()), 1e-6)
+        ).float()
+        weights = sparsemax(normalized_logits, dim=-1).to(logits.dtype)
         residuals = torch.einsum("bsl,bld->bsd", weights, tokens)
         residuals = self.residual_norm(residuals)
         return residuals * self.residual_scale.to(residuals.dtype)
@@ -305,10 +318,10 @@ class BracoCompressor(nn.Module):
     def _low_frequency_tokens(self, tokens: Tensor, side: int) -> Tensor:
         batch, _, dim = tokens.shape
         basis = self._get_dct(side, tokens)
-        grid = tokens.view(batch, side, side, dim)
-        grid = grid.permute(0, 3, 1, 2).reshape(batch * dim, side, side)
 
         def transform() -> Tensor:
+            grid = tokens.view(batch, side, side, dim)
+            grid = grid.permute(0, 3, 1, 2).contiguous().flatten(0, 1)
             return basis @ grid @ basis.transpose(0, 1)
 
         if self.detach_transform:
@@ -329,10 +342,10 @@ class BracoCompressor(nn.Module):
         low = transformed[:, :, :cutoff, :cutoff]
         if self.coordinate_mode == "idct":
             basis_small = self._get_small_dct(low)
-            flat = low.reshape(batch * dim, cutoff, cutoff)
+            flat = low.contiguous().view(batch * dim, cutoff, cutoff)
             flat = basis_small.transpose(0, 1) @ flat @ basis_small
             low = flat.view(batch, dim, cutoff, cutoff)
-        return low.permute(0, 2, 3, 1).reshape(batch, cutoff**2, dim)
+        return low.permute(0, 2, 3, 1).contiguous().view(batch, cutoff**2, dim)
 
     def forward(self, tokens: Tensor) -> Tensor:
         """Return exactly ``cutoff**2 + residual_tokens`` visual tokens."""
@@ -348,8 +361,8 @@ class BracoCompressor(nn.Module):
                 f"cutoff {self.cutoff} exceeds input grid side {side}"
             )
 
-        backbone = self._low_frequency_tokens(grid_tokens, side)
         residuals = self._spatial_residuals(grid_tokens, side)
+        backbone = self._low_frequency_tokens(grid_tokens, side)
         output = (
             backbone if residuals is None else torch.cat((backbone, residuals), dim=1)
         )

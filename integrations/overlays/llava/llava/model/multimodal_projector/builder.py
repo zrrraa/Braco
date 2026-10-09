@@ -98,7 +98,7 @@ class FourierFreqSelect(nn.Module):
         )
         self.temp_end = None if temp_end is None else float(temp_end)
         self.temp_anneal_steps = int(temp_anneal_steps)
-        self.temp_schedule = str(temp_schedule).lower()
+        self.temp_schedule = str(temp_schedule)
         self.register_buffer(
             "temperature_cur",
             torch.tensor(self.temperature),
@@ -129,6 +129,15 @@ class FourierFreqSelect(nn.Module):
         self.spatial_temp_mul = float(spatial_temp_mul)
         self.spatial_prior = str(spatial_prior).lower()
 
+        if self.spatial_use_norm:
+            self.spatial_norm = nn.LayerNorm(self.in_dim)
+        self.spatial_scale = nn.Parameter(
+            torch.tensor(float(spatial_scale_init))
+        )
+        self.spatial_prior_weight = nn.Parameter(
+            torch.tensor(float(spatial_prior_weight_init))
+        )
+
         if self.spatial_keep:
             hidden_dim = max(1, self.in_dim * self.spatial_hidden_mult)
             if self.spatial_hidden_mult <= 0:
@@ -143,23 +152,26 @@ class FourierFreqSelect(nn.Module):
                     nn.GELU(),
                     nn.Linear(hidden_dim, self.spatial_keep),
                 )
-            if self.spatial_use_norm:
-                self.spatial_norm = nn.LayerNorm(self.in_dim)
-            self.spatial_scale = nn.Parameter(
-                torch.tensor(float(spatial_scale_init))
-            )
-            self.spatial_prior_weight = nn.Parameter(
-                torch.tensor(float(spatial_prior_weight_init))
-            )
 
         self.post_concat_norm = bool(post_concat_norm)
         if self.post_concat_norm:
-            self.post_norm = nn.LayerNorm(
+            self.post_concat_ln = nn.LayerNorm(
                 self.in_dim, eps=float(post_concat_norm_eps)
             )
 
         self.register_buffer("D_cache", torch.empty(0), persistent=False)
         self.register_buffer("D_small_cache", torch.empty(0), persistent=False)
+
+    def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
+        # Accept checkpoints saved with the previous public LayerNorm name.
+        for name in ("weight", "bias"):
+            previous = prefix + "post_norm." + name
+            current = prefix + "post_concat_ln." + name
+            if previous in state_dict:
+                if current not in state_dict:
+                    state_dict[current] = state_dict[previous]
+                del state_dict[previous]
+        super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
     @property
     def output_tokens(self):
@@ -224,32 +236,35 @@ class FourierFreqSelect(nn.Module):
         cols = torch.arange(
             side, device=device, dtype=torch.float32
         )[None, :].expand(side, side)
-        radius = torch.sqrt(rows.square() + cols.square())
-        radius = radius / max(math.sqrt(2.0) * (side - 1), 1.0)
+        radius = torch.sqrt(rows * rows + cols * cols)
+        radius_max = torch.sqrt(torch.tensor(
+            float((side - 1) * (side - 1) * 2),
+            device=device, dtype=torch.float32,
+        )).clamp(min=1.0)
+        radius = radius / radius_max
         angle = torch.atan2(cols, rows)
         angle = torch.where(
             (rows == 0) & (cols == 0),
             torch.zeros_like(angle),
             angle,
         )
-        bands = 2.0 ** torch.arange(
+        bands = (2.0 ** torch.arange(
             self.polar_num_freqs, device=device, dtype=torch.float32
+        )).view(1, 1, self.polar_num_freqs)
+        radial_phase = (torch.pi * bands) * radius.unsqueeze(-1)
+        radial_features = torch.cat(
+            (radial_phase.sin(), radial_phase.cos()), dim=-1
         )
-        radial_phase = math.pi * radius[..., None] * bands
-        angular_phase = angle[..., None] * bands
+        angular_phase = bands * angle.unsqueeze(-1)
+        angular_features = torch.cat(
+            (angular_phase.sin(), angular_phase.cos()), dim=-1
+        )
         features = []
         if self.polar_include_raw:
             features.append(
                 torch.stack((radius, angle.sin(), angle.cos()), dim=-1)
             )
-        features.extend(
-            (
-                radial_phase.sin(),
-                radial_phase.cos(),
-                angular_phase.sin(),
-                angular_phase.cos(),
-            )
-        )
+        features.extend((radial_features, angular_features))
         self.polar_feat = torch.cat(features, dim=-1)
         return self.polar_feat
 
@@ -257,16 +272,16 @@ class FourierFreqSelect(nn.Module):
     def _gradient_energy(tokens, side):
         batch, _, dim = tokens.shape
         grid = tokens.view(batch, side, side, dim).float()
-        vertical = grid[:, 1:] - grid[:, :-1]
-        horizontal = grid[:, :, 1:] - grid[:, :, :-1]
-        vertical = vertical.square().sum(dim=-1)
-        horizontal = horizontal.square().sum(dim=-1)
+        vertical = grid[:, 1:, :, :] - grid[:, :-1, :, :]
+        horizontal = grid[:, :, 1:, :] - grid[:, :, :-1, :]
+        vertical = (vertical * vertical).sum(dim=-1)
+        horizontal = (horizontal * horizontal).sum(dim=-1)
         energy = grid.new_zeros((batch, side, side))
-        energy[:, 1:] += vertical
-        energy[:, :-1] += vertical
+        energy[:, 1:, :] += vertical
+        energy[:, :-1, :] += vertical
         energy[:, :, 1:] += horizontal
         energy[:, :, :-1] += horizontal
-        return energy.flatten(1)
+        return energy.view(batch, side * side)
 
     @staticmethod
     def _normalise(logits, norm):
@@ -283,44 +298,37 @@ class FourierFreqSelect(nn.Module):
             return entmax_bisect(logits, alpha=alpha, dim=-1)
         raise ValueError(f"unknown normalization: {norm}")
 
+    @torch.no_grad()
     def set_step(self, step, max_steps=None):
-        if self.temp_start is None or self.temp_end is None:
+        if (
+            self.temp_start is None
+            or self.temp_end is None
+            or self.temp_anneal_steps <= 0
+        ):
             self.temperature_cur.fill_(max(self.temperature, 1e-6))
             return
-        steps = self.temp_anneal_steps
-        if steps <= 0 and max_steps is not None:
-            steps = int(max_steps)
-        progress = min(max(float(step) / max(steps, 1), 0.0), 1.0)
-        if self.temp_schedule == "cosine":
-            progress = 0.5 * (1.0 - math.cos(math.pi * progress))
-        elif self.temp_schedule == "exp":
-            if self.temp_start <= 0 or self.temp_end <= 0:
-                raise ValueError(
-                    "exponential temperature endpoints must be positive"
-                )
-            value = self.temp_start * (
-                self.temp_end / self.temp_start
-            ) ** progress
-            self.temperature_cur.fill_(value)
-            return
-        elif self.temp_schedule != "linear":
-            raise ValueError(
-                f"unknown temperature schedule: {self.temp_schedule}"
-            )
-        value = self.temp_start + progress * (
-            self.temp_end - self.temp_start
+        progress = float(min(max(step, 0), self.temp_anneal_steps)) / float(
+            self.temp_anneal_steps
         )
-        self.temperature_cur.fill_(value)
+        if self.temp_schedule == "linear":
+            value = self.temp_start + (self.temp_end - self.temp_start) * progress
+        elif self.temp_schedule == "exp":
+            value = self.temp_end + (self.temp_start - self.temp_end) * (
+                0.01 ** progress
+            )
+        else:
+            value = self.temp_end + 0.5 * (self.temp_start - self.temp_end) * (
+                1.0 + math.cos(math.pi * progress)
+            )
+        self.temperature_cur.fill_(max(float(value), 1e-6))
 
     def _low_frequency_tokens(self, tokens, side):
         batch, _, dim = tokens.shape
         basis = self._get_dct(side, tokens)
-        grid = tokens.view(batch, side, side, dim)
-        grid = grid.permute(0, 3, 1, 2).reshape(
-            batch * dim, side, side
-        )
 
         def transform():
+            grid = tokens.view(batch, side, side, dim)
+            grid = grid.permute(0, 3, 1, 2).contiguous().flatten(0, 1)
             return basis @ grid @ basis.transpose(0, 1)
 
         if self.dct_detach:
@@ -335,19 +343,16 @@ class FourierFreqSelect(nn.Module):
             polar = self.polar_proj(
                 polar.to(self.polar_proj.weight.dtype)
             )
-            polar = polar.permute(2, 0, 1)[None].to(transformed.dtype)
-            transformed = (
-                transformed
-                + self.polar_pe_scale.to(transformed.dtype) * polar
-            )
+            polar = polar.permute(2, 0, 1).unsqueeze(0).to(transformed.dtype)
+            transformed = transformed + self.polar_pe_scale * polar
 
         low = transformed[:, :, : self.C, : self.C]
         if self.low_idct:
             small = self._get_dct(self.C, low, small=True)
-            flat = low.reshape(batch * dim, self.C, self.C)
+            flat = low.contiguous().view(batch * dim, self.C, self.C)
             flat = small.transpose(0, 1) @ flat @ small
             low = flat.view(batch, dim, self.C, self.C)
-        return low.permute(0, 2, 3, 1).reshape(
+        return low.permute(0, 2, 3, 1).contiguous().view(
             batch, self.C * self.C, dim
         )
 
@@ -363,7 +368,7 @@ class FourierFreqSelect(nn.Module):
             logits = (
                 logits
                 + self.spatial_prior_weight.to(logits.dtype)
-                * energy[:, None].to(logits.dtype)
+                * energy.unsqueeze(1).to(logits.dtype)
             )
         temperature = max(
             float(self.temperature_cur.item()) * self.spatial_temp_mul,
@@ -372,7 +377,7 @@ class FourierFreqSelect(nn.Module):
         weights = self._normalise(
             (logits / temperature).float(),
             self.spatial_selection_norm,
-        ).to(tokens.dtype)
+        ).to(logits.dtype)
         residuals = torch.einsum("bsl,bld->bsd", weights, tokens)
         if self.spatial_use_norm:
             residuals = self.spatial_norm(residuals)
@@ -389,13 +394,13 @@ class FourierFreqSelect(nn.Module):
             raise ValueError(
                 f"cutoff {self.C} exceeds input grid side {side}"
             )
-        low = self._low_frequency_tokens(tokens, side)
         spatial = self._spatial_tokens(tokens, side)
+        low = self._low_frequency_tokens(tokens, side)
         output = (
             low if spatial is None else torch.cat((low, spatial), dim=1)
         )
         if self.post_concat_norm:
-            output = self.post_norm(output)
+            output = self.post_concat_ln(output)
         if output.shape[1] != self.output_tokens:
             raise RuntimeError(
                 f"expected {self.output_tokens} output tokens, "
