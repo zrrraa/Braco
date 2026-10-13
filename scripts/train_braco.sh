@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  echo "Usage: $0 BUDGET SEED [--pe true|false] [--idct true|false]"
+  echo "Defaults: PE=true; IDCT=false for 4/9/16 tokens and true for 25 tokens. Basis: DCT."
+  exit 0
+fi
 source "$(dirname "$0")/common.sh"
 
-BUDGET="${1:?Usage: scripts/train_braco.sh BUDGET SEED}"
-SEED="${2:?Usage: scripts/train_braco.sh BUDGET SEED}"
-check_budget "${BUDGET}"
+parse_braco_run "$@"
 set_repro_seed "${SEED}"
 
 GRAD_ACCUM_STEPS="${GRAD_ACCUM_STEPS:-1}"
@@ -13,18 +16,10 @@ if [[ ! "${GRAD_ACCUM_STEPS}" =~ ^[1-9][0-9]*$ ]]; then
   exit 2
 fi
 
-case "${BUDGET}" in
-  4)  C=1; S=3; LOW_IDCT=False ;;
-  9)  C=2; S=5; LOW_IDCT=False ;;
-  16) C=3; S=7; LOW_IDCT=False ;;
-  25) C=4; S=9; LOW_IDCT=True ;;
-  *) echo "Braco budget must be one of: 4, 9, 16, 25" >&2; exit 2 ;;
-esac
-
 REPO="${UPSTREAM_ROOT}/llava"
-RUN_ROOT="${OUTPUT_ROOT}/braco/k${BUDGET}/seed${SEED}"
 STAGE1="${RUN_ROOT}/stage1"
 STAGE2="${RUN_ROOT}/stage2"
+echo "Braco: K=${BUDGET}, basis=DCT, PE=${USE_PE}, IDCT=${LOW_IDCT}; output=${RUN_ROOT}"
 
 require_dir "${REPO}"
 require_dir "${MODEL_ROOT}/vicuna-7b-v1.5"
@@ -55,7 +50,7 @@ deepspeed llava/train/train_mem.py \
   --mm_fourier_spatial_scale_init 1.0 \
   --mm_fourier_spatial_prior_weight_init 0.0 \
   --mm_fourier_spatial_use_norm True \
-  --mm_fourier_use_polar_pe True \
+  --mm_fourier_use_polar_pe "${USE_PE}" \
   --mm_fourier_polar_pe_scale_init 0.1 \
   --mm_fourier_post_concat_norm False \
   --mm_fourier_low_idct "${LOW_IDCT}" \
@@ -108,7 +103,7 @@ deepspeed llava/train/train_mem.py \
   --mm_fourier_spatial_scale_init 1.0 \
   --mm_fourier_spatial_prior_weight_init 0.0 \
   --mm_fourier_spatial_use_norm True \
-  --mm_fourier_use_polar_pe True \
+  --mm_fourier_use_polar_pe "${USE_PE}" \
   --mm_fourier_polar_pe_scale_init 0.1 \
   --mm_fourier_post_concat_norm False \
   --mm_fourier_low_idct "${LOW_IDCT}" \

@@ -32,6 +32,8 @@ methods:
   braco:
     family: transform_plus_spatial_residual
     boundary: pre_projector
+    basis: dct
+    use_polar_pe: true
     post_concat_norm: false
     budgets: [25, 16, 9, 4]
     split:

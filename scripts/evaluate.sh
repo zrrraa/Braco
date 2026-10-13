@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  echo "Usage: $0 BUDGET SEED [--pe true|false] [--idct true|false]"
+  echo "Use the same options as training to select the checkpoint."
+  exit 0
+fi
 source "$(dirname "$0")/common.sh"
 
-BUDGET="${1:?Usage: scripts/evaluate.sh BUDGET SEED}"
-SEED="${2:?Usage: scripts/evaluate.sh BUDGET SEED}"
+parse_braco_run "$@"
 METHOD=braco
-check_budget "${BUDGET}"
 set_repro_seed "${SEED}"
 CODE_ROOT="${UPSTREAM_ROOT}/llava"
 require_dir "${CODE_ROOT}"
-RUN_ROOT="${OUTPUT_ROOT}/braco/k${BUDGET}/seed${SEED}"
 require_dir "${RUN_ROOT}/stage2"
 # LLaVA's evaluation loader identifies the model family from the path name.
 MODEL_PATH="${RUN_ROOT}/llava-braco"

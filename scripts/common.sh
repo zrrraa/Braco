@@ -31,6 +31,60 @@ check_budget() {
   esac
 }
 
+parse_braco_run() {
+  if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 BUDGET SEED [--pe true|false] [--idct true|false]" >&2
+    exit 2
+  fi
+  BUDGET="$1"
+  SEED="$2"
+  shift 2
+  check_budget "${BUDGET}"
+  if [[ ! "${SEED}" =~ ^[0-9]+$ ]]; then
+    echo "SEED must be a non-negative integer" >&2
+    exit 2
+  fi
+
+  case "${BUDGET}" in
+    4)  C=1; S=3; LOW_IDCT=False ;;
+    9)  C=2; S=5; LOW_IDCT=False ;;
+    16) C=3; S=7; LOW_IDCT=False ;;
+    25) C=4; S=9; LOW_IDCT=True ;;
+  esac
+  local default_idct="${LOW_IDCT}" option value
+  USE_PE=True
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --pe|--idct)
+        option="$1"
+        if [[ $# -lt 2 ]]; then
+          echo "${option} requires true or false" >&2
+          exit 2
+        fi
+        value="$2"
+        shift 2
+        ;;
+      --pe=*|--idct=*)
+        option="${1%%=*}"
+        value="${1#*=}"
+        shift
+        ;;
+      *) echo "Unknown option: $1" >&2; exit 2 ;;
+    esac
+    case "${value,,}" in
+      true) value=True ;;
+      false) value=False ;;
+      *) echo "${option} requires true or false, got: ${value}" >&2; exit 2 ;;
+    esac
+    if [[ "${option}" == --pe ]]; then USE_PE="${value}"; else LOW_IDCT="${value}"; fi
+  done
+
+  RUN_ROOT="${OUTPUT_ROOT}/braco/k${BUDGET}/seed${SEED}"
+  if [[ "${USE_PE}" != True || "${LOW_IDCT}" != "${default_idct}" ]]; then
+    RUN_ROOT+="-pe-${USE_PE,,}-idct-${LOW_IDCT,,}"
+  fi
+}
+
 set_repro_seed() {
   local seed="$1"
   export PYTHONHASHSEED="${seed}"
@@ -44,5 +98,18 @@ record_environment() {
   python -m pip freeze > "${destination}/pip-freeze.txt"
   nvidia-smi -q > "${destination}/nvidia-smi.txt"
   git -C "${UPSTREAM_ROOT}/llava" rev-parse HEAD > "${destination}/llava-commit.txt"
-  cp "${PACKAGE_ROOT}/configs/braco.yaml" "${destination}/resolved_protocol.yaml"
+  python - "${PACKAGE_ROOT}/configs/braco.yaml" "${destination}/resolved_protocol.yaml" \
+    "${BUDGET}" "${SEED}" "${USE_PE}" "${LOW_IDCT}" <<'PY'
+import sys
+from pathlib import Path
+import yaml
+
+source, destination, budget, seed, pe, idct = sys.argv[1:]
+config = yaml.safe_load(Path(source).read_text())
+config["selected_budget"] = int(budget)
+config["seed"] = int(seed)
+config["methods"]["braco"]["use_polar_pe"] = pe == "True"
+config["methods"]["braco"]["split"][int(budget)]["low_idct"] = idct == "True"
+Path(destination).write_text(yaml.safe_dump(config, sort_keys=False))
+PY
 }

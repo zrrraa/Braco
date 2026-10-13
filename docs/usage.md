@@ -59,6 +59,19 @@ The Braco compressor and multimodal projector are optimized in both stages;
 the language model is also optimized in stage 2. The settings above use
 eight training GPUs. Each token budget has its own trained checkpoint.
 
+The basis is DCT. Use `--pe` to enable or disable basis-coordinate embeddings
+and `--idct` to choose the coordinate organization:
+
+```bash
+bash scripts/train_braco.sh 25 0 --pe true --idct false
+```
+
+PE defaults to `true`. IDCT defaults to `false` for 4/9/16 tokens and `true`
+for 25 tokens. Both options accept `true` or `false` for every budget.
+Non-default combinations use a separate run directory; the example above
+saves to `$REPRO_ROOT/outputs/braco/k25/seed0-pe-true-idct-false/`.
+The resolved settings are saved in `metadata/resolved_protocol.yaml` and the checkpoint.
+
 `GRAD_ACCUM_STEPS` controls gradient accumulation in both stages (default: `1`).
 With four GPUs, use `2` to retain global batch sizes of 256 and 128:
 
@@ -81,6 +94,14 @@ GQA, MMBench-EN/CN, MME, POPE, ScienceQA, TextVQA, and MMVet.
 Answers and available local scores are saved beneath the run's `evaluation/`
 directory. The launcher creates a `llava-braco` symlink to the stage-2 checkpoint
 for LLaVA's model-family detection.
+
+For a non-default configuration, pass the same options used for training:
+
+```bash
+bash scripts/evaluate.sh 25 0 --pe true --idct false
+```
+
+Inference reads PE and IDCT from the checkpoint configuration.
 
 Use the following metrics when reading the evaluator output:
 
