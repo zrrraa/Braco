@@ -7,8 +7,9 @@ BENCHMARK="${1:?benchmark key required}"
 : "${DATA_ROOT:?}"
 
 mkdir -p "${RESULT_ROOT}/${BENCHMARK}"
+RESULT_ROOT="$(cd "${RESULT_ROOT}" && pwd)"
 OUT="${RESULT_ROOT}/${BENCHMARK}/answers.jsonl"
-EVAL="${DATA_ROOT}/eval"
+EVAL="$(cd "${DATA_ROOT}/eval" && pwd)"
 
 case "${BENCHMARK}" in
   gqa)
@@ -20,13 +21,12 @@ case "${BENCHMARK}" in
       --temperature 0 --conv-mode vicuna_v1
     python scripts/convert_gqa_for_eval.py \
       --src "${OUT}" \
-      --dst "${EVAL}/gqa/data/testdev_balanced_predictions.json"
-    cp "${EVAL}/gqa/data/testdev_balanced_predictions.json" \
-      "${RESULT_ROOT}/${BENCHMARK}/testdev_balanced_predictions.json"
+      --dst "${RESULT_ROOT}/${BENCHMARK}/testdev_balanced_predictions.json"
     (
       cd "${EVAL}/gqa/data"
       python eval/eval.py \
         --tier testdev_balanced \
+        --predictions "${RESULT_ROOT}/${BENCHMARK}/testdev_balanced_predictions.json" \
         > "${RESULT_ROOT}/${BENCHMARK}/score.txt"
     )
     ;;
@@ -59,19 +59,21 @@ case "${BENCHMARK}" in
       --image-folder "${EVAL}/mme/MME_Benchmark_release_version" \
       --answers-file "${OUT}" \
       --temperature 0 --conv-mode vicuna_v1
-    mkdir -p "${EVAL}/mme/answers"
-    cp "${OUT}" "${EVAL}/mme/answers/${MME_EXPERIMENT}.jsonl"
+    MME_WORK="$(mktemp -d "${RESULT_ROOT}/${BENCHMARK}/.scoring.XXXXXX")"
+    trap 'rm -rf -- "${MME_WORK}"' EXIT
+    mkdir -p "${MME_WORK}/answers"
+    ln -s "${EVAL}/mme/MME_Benchmark_release_version" "${MME_WORK}/MME_Benchmark_release_version"
+    ln -s "${OUT}" "${MME_WORK}/answers/${MME_EXPERIMENT}.jsonl"
     (
-      cd "${EVAL}/mme"
-      python convert_answer_to_mme.py \
+      cd "${MME_WORK}"
+      python "${EVAL}/mme/convert_answer_to_mme.py" \
         --experiment "${MME_EXPERIMENT}"
-      cd eval_tool
-      python calculation.py \
-        --results_dir "answers/${MME_EXPERIMENT}" \
+      python "${EVAL}/mme/eval_tool/calculation.py" \
+        --results_dir "eval_tool/answers/${MME_EXPERIMENT}" \
         > "${RESULT_ROOT}/${BENCHMARK}/score.txt"
     )
     mkdir -p "${RESULT_ROOT}/${BENCHMARK}/official_answers"
-    cp -a "${EVAL}/mme/eval_tool/answers/${MME_EXPERIMENT}/." \
+    cp -a "${MME_WORK}/eval_tool/answers/${MME_EXPERIMENT}/." \
       "${RESULT_ROOT}/${BENCHMARK}/official_answers/"
     ;;
   pope)

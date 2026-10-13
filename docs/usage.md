@@ -63,13 +63,13 @@ The basis is DCT. Use `--pe` to enable or disable basis-coordinate embeddings
 and `--idct` to choose the coordinate organization:
 
 ```bash
-bash scripts/train_braco.sh 25 0 --pe true --idct false
+bash scripts/train_braco.sh 9 0 --pe true --idct true
 ```
 
-PE defaults to `true`. IDCT defaults to `false` for 4/9/16 tokens and `true`
-for 25 tokens. Both options accept `true` or `false` for every budget.
+All token budgets default to `--pe true --idct false`.
+Both options accept `true` or `false` for every budget.
 Non-default combinations use a separate run directory; the example above
-saves to `$REPRO_ROOT/outputs/braco/k25/seed0-pe-true-idct-false/`.
+saves to `$REPRO_ROOT/outputs/braco/k9/seed0-pe-true-idct-true/`.
 The resolved settings are saved in `metadata/resolved_protocol.yaml` and the checkpoint.
 
 `GRAD_ACCUM_STEPS` controls gradient accumulation in both stages (default: `1`).
@@ -98,7 +98,7 @@ for LLaVA's model-family detection.
 For a non-default configuration, pass the same options used for training:
 
 ```bash
-bash scripts/evaluate.sh 25 0 --pe true --idct false
+bash scripts/evaluate.sh 9 0 --pe true --idct true
 ```
 
 Inference reads PE and IDCT from the checkpoint configuration.

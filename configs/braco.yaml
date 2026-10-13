@@ -40,7 +40,7 @@ methods:
       4:  {C: 1, S: 3, low_idct: false}
       9:  {C: 2, S: 5, low_idct: false}
       16: {C: 3, S: 7, low_idct: false}
-      25: {C: 4, S: 9, low_idct: true}
+      25: {C: 4, S: 9, low_idct: false}
 
 evaluation:
   benchmarks: [gqa, mmbench_en, mmbench_cn, mme, pope, scienceqa, textvqa, mmvet]

@@ -30,7 +30,8 @@ def load_integrated_module():
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
 @pytest.mark.parametrize("budget", sorted(BRACO_BUDGETS))
-def test_reference_matches_llava_integration(budget: int, dtype: torch.dtype) -> None:
+@pytest.mark.parametrize("coordinate_mode", ["coefficients", "idct"])
+def test_reference_matches_llava_integration(budget: int, dtype: torch.dtype, coordinate_mode: str) -> None:
     integrated_module = load_integrated_module()
     config = BRACO_BUDGETS[budget]
 
@@ -43,7 +44,7 @@ def test_reference_matches_llava_integration(budget: int, dtype: torch.dtype) ->
         mm_fourier_K_high=0,
         mm_fourier_spatial_keep=config.residual_tokens,
         mm_fourier_use_polar_pe=True,
-        mm_fourier_low_idct=config.coordinate_mode == "idct",
+        mm_fourier_low_idct=coordinate_mode == "idct",
         mm_fourier_post_concat_norm=False,
     )
     integrated = integrated_module.build_vision_projector(
@@ -52,6 +53,7 @@ def test_reference_matches_llava_integration(budget: int, dtype: torch.dtype) ->
     reference = BracoCompressor.from_budget(
         dim=16,
         budget=budget,
+        coordinate_mode=coordinate_mode,
         detach_transform=integrated.dct_detach,
         temperature=float(integrated.temperature_cur.item()),
     ).eval()

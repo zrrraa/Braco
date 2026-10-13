@@ -40,7 +40,7 @@ BRACO_BUDGETS: dict[int, BracoConfig] = {
     4: BracoConfig(cutoff=1, residual_tokens=3),
     9: BracoConfig(cutoff=2, residual_tokens=5),
     16: BracoConfig(cutoff=3, residual_tokens=7),
-    25: BracoConfig(cutoff=4, residual_tokens=9, coordinate_mode="idct"),
+    25: BracoConfig(cutoff=4, residual_tokens=9),
 }
 
 
@@ -163,18 +163,18 @@ class BracoCompressor(nn.Module):
         budget: int,
         **kwargs: object,
     ) -> "BracoCompressor":
-        """Build one of the four configurations used in the main table."""
+        """Build a supported token budget with optional configuration overrides."""
 
         try:
             config = BRACO_BUDGETS[int(budget)]
         except KeyError as error:
             supported = ", ".join(map(str, sorted(BRACO_BUDGETS)))
             raise ValueError(f"budget must be one of: {supported}") from error
+        kwargs.setdefault("coordinate_mode", config.coordinate_mode)
         return cls(
             dim=dim,
             cutoff=config.cutoff,
             residual_tokens=config.residual_tokens,
-            coordinate_mode=config.coordinate_mode,
             **kwargs,
         )
 

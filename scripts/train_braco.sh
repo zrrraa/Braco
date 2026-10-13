@@ -2,7 +2,7 @@
 set -euo pipefail
 if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
   echo "Usage: $0 BUDGET SEED [--pe true|false] [--idct true|false]"
-  echo "Defaults: PE=true; IDCT=false for 4/9/16 tokens and true for 25 tokens. Basis: DCT."
+  echo "Defaults for all token budgets: PE=true, IDCT=false. Basis: DCT."
   exit 0
 fi
 source "$(dirname "$0")/common.sh"

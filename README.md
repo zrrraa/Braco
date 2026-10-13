@@ -68,10 +68,11 @@ Train both stages on eight GPUs. Choose a token budget of `4`, `9`, `16`, or `25
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 bash scripts/train_braco.sh 9 0
 ```
 
-Set PE and IDCT with `--pe true|false` and `--idct true|false`, for example:
+All token budgets default to `--pe true --idct false`. Override either option
+with `--pe true|false` and `--idct true|false`, for example:
 
 ```bash
-bash scripts/train_braco.sh 25 0 --pe true --idct false
+bash scripts/train_braco.sh 9 0 --pe true --idct true
 ```
 
 IDCT's benefit can vary with the token budget and software/hardware environment.
@@ -80,7 +81,7 @@ For extreme compression, we recommend trying `--idct false` first.
 For four GPUs, set `GRAD_ACCUM_STEPS=2` and `CUDA_VISIBLE_DEVICES=0,1,2,3`
 to keep the same global batch sizes.
 
-The full checkpoint is saved to `$REPRO_ROOT/outputs/braco/k9/seed0/stage2`.
+With the default settings, the full checkpoint is saved to `$REPRO_ROOT/outputs/braco/k9/seed0/stage2`.
 See [training settings](configs/braco.yaml) and [benchmark evaluation](docs/usage.md#evaluation-workflow) for details.
 
 ## 💬 Inference

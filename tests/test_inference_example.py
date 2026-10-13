@@ -20,12 +20,14 @@ class InferenceExampleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             for cutoff, residuals, expected in [(1, 3, 4), (2, 5, 9), (3, 7, 16), (4, 9, 25)]:
-                (path / "config.json").write_text(json.dumps({
-                    "mm_projector_type": "fourier_mlp2x_gelu",
-                    "mm_fourier_C": cutoff, "mm_fourier_spatial_keep": residuals,
-                    "mm_fourier_use_polar_pe": True,
-                }), encoding="utf-8")
-                self.assertEqual(example.checkpoint_budget(path), expected)
+                for pe in (True, False):
+                    with self.subTest(budget=expected, pe=pe):
+                        (path / "config.json").write_text(json.dumps({
+                            "mm_projector_type": "fourier_mlp2x_gelu",
+                            "mm_fourier_C": cutoff, "mm_fourier_spatial_keep": residuals,
+                            "mm_fourier_use_polar_pe": pe,
+                        }), encoding="utf-8")
+                        self.assertEqual(example.checkpoint_budget(path), expected)
 
     def test_vanilla_checkpoint_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

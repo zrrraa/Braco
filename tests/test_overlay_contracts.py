@@ -70,12 +70,6 @@ def test_conversion_launchers_have_required_setup() -> None:
 
     assert 'MODEL_PATH="${RUN_ROOT}/llava-braco"' in evaluate
     assert 'mkdir -p "${RESULT_ROOT}/${BENCHMARK}/upload"' in one
-    assert (
-        '--dst "${EVAL}/gqa/data/testdev_balanced_predictions.json"'
-        in one
-    )
-    assert '--experiment "${MME_EXPERIMENT}"' in one
-    assert '--results_dir "answers/${MME_EXPERIMENT}"' in one
 
 
 def test_environment_matches_pinned_llava_runtime() -> None:

@@ -48,6 +48,7 @@ def test_main_table_budget_shapes_and_backward(budget: int) -> None:
         budget=budget,
         detach_transform=False,
     )
+    assert compressor.coordinate_mode == "coefficients"
     tokens = torch.randn(2, 576, 32, requires_grad=True)
     output = compressor(tokens)
 

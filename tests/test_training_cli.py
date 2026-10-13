@@ -61,22 +61,24 @@ def run(launchers, script, *args):
                           env=env, text=True, capture_output=True)
 
 
-@pytest.mark.parametrize("budget,default_idct", [(4, False), (9, False), (16, False), (25, True)])
-def test_default_paths_and_budget_settings(launchers, budget, default_idct):
+@pytest.mark.parametrize("budget", [4, 9, 16, 25])
+def test_default_paths_and_budget_settings(launchers, budget):
     package, work, env = launchers
     command = 'source "$1"; shift; parse_braco_run "$@"; printf "%s %s %s %s %s" "$C" "$S" "$USE_PE" "$LOW_IDCT" "$RUN_ROOT"'
     result = subprocess.run(["bash", "-c", command, "bash", str(package / "scripts/common.sh"), str(budget), "0"],
                             env=env, text=True, capture_output=True, check=True)
     c, s, pe, idct, output = result.stdout.split()
     assert int(c)**2 + int(s) == budget
-    assert pe == "True" and idct == str(default_idct)
+    assert pe == "True" and idct == "False"
     assert output == str(work / f"outputs/braco/k{budget}/seed0")
 
 
-@pytest.mark.parametrize("budget,options,pe,idct", [
-    (25, ["--pe", "false", "--idct", "false"], False, False),
-    (9, ["--pe=True", "--idct=True"], True, True),
-    (25, ["--pe", "true", "--idct", "true"], True, True),
+@pytest.mark.parametrize("budget", [4, 9, 16, 25])
+@pytest.mark.parametrize("options,pe,idct", [
+    ([], True, False),
+    (["--pe", "false", "--idct", "false"], False, False),
+    (["--pe=True", "--idct=True"], True, True),
+    (["--pe", "false", "--idct", "true"], False, True),
 ])
 def test_two_stages_metadata_and_evaluation_select_same_run(launchers, budget, options, pe, idct):
     _, work, _ = launchers
@@ -88,7 +90,7 @@ def test_two_stages_metadata_and_evaluation_select_same_run(launchers, budget, o
         assert args[args.index("--mm_fourier_use_polar_pe")+1] == str(pe)
         assert args[args.index("--mm_fourier_low_idct")+1] == str(idct)
     out = Path(commands[1][commands[1].index("--output_dir")+1]).parent
-    suffix = f"-pe-{str(pe).lower()}-idct-{str(idct).lower()}" if not pe or idct != (budget == 25) else ""
+    suffix = f"-pe-{str(pe).lower()}-idct-{str(idct).lower()}" if not pe or idct else ""
     assert out.name == f"seed7{suffix}"
     assert commands[1][commands[1].index("--pretrain_mm_mlp_adapter")+1] == str(out / "stage1/mm_projector.bin")
     config = yaml.safe_load((out / "metadata/resolved_protocol.yaml").read_text())

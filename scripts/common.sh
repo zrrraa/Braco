@@ -46,13 +46,14 @@ parse_braco_run() {
   fi
 
   case "${BUDGET}" in
-    4)  C=1; S=3; LOW_IDCT=False ;;
-    9)  C=2; S=5; LOW_IDCT=False ;;
-    16) C=3; S=7; LOW_IDCT=False ;;
-    25) C=4; S=9; LOW_IDCT=True ;;
+    4)  C=1; S=3 ;;
+    9)  C=2; S=5 ;;
+    16) C=3; S=7 ;;
+    25) C=4; S=9 ;;
   esac
-  local default_idct="${LOW_IDCT}" option value
+  local option value
   USE_PE=True
+  LOW_IDCT=False
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --pe|--idct)
@@ -80,7 +81,7 @@ parse_braco_run() {
   done
 
   RUN_ROOT="${OUTPUT_ROOT}/braco/k${BUDGET}/seed${SEED}"
-  if [[ "${USE_PE}" != True || "${LOW_IDCT}" != "${default_idct}" ]]; then
+  if [[ "${USE_PE}" != True || "${LOW_IDCT}" != False ]]; then
     RUN_ROOT+="-pe-${USE_PE,,}-idct-${LOW_IDCT,,}"
   fi
 }
