@@ -19,7 +19,8 @@ class InferenceExampleTests(unittest.TestCase):
     def test_budget_is_read_from_checkpoint(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
-            for cutoff, residuals, expected in [(1, 3, 4), (2, 5, 9), (3, 7, 16), (4, 9, 25)]:
+            for cutoff, residuals, expected in [(1, 3, 4), (2, 5, 9), (3, 7, 16), (4, 9, 25),
+                                                (2, 6, 10), (1, 8, 9), (3, 0, 9)]:
                 for pe in (True, False):
                     with self.subTest(budget=expected, pe=pe):
                         (path / "config.json").write_text(json.dumps({

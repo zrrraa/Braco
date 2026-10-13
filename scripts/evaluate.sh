@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
-  echo "Usage: $0 BUDGET SEED [--pe true|false] [--idct true|false]"
+  echo "Usage: $0 BUDGET SEED [--c C --s S] [--pe true|false] [--idct true|false]"
+  echo "   or: $0 --c C --s S [--seed SEED] [--pe true|false] [--idct true|false]"
   echo "Use the same options as training to select the checkpoint."
   exit 0
 fi

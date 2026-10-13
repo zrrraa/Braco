@@ -14,8 +14,8 @@ def checkpoint_budget(model_path: Path) -> int:
         raise ValueError("Use the full stage-2 checkpoint produced by train_braco.sh.")
     cutoff = int(config.get("mm_fourier_C", 0))
     residuals = int(config.get("mm_fourier_spatial_keep", 0))
-    if cutoff < 1 or residuals < 1:
-        raise ValueError("The checkpoint must contain the Braco backbone and spatial branch.")
+    if cutoff < 1 or residuals < 0:
+        raise ValueError("The checkpoint must have C >= 1 and S >= 0.")
     return cutoff * cutoff + residuals
 
 

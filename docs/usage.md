@@ -24,7 +24,7 @@ DATA_ROOT/
     └── images/
 ```
 
-Stage 1 uses LLaVA-558K for multimodal alignment. Stage 2 uses LLaVA-665K for instruction tuning.
+The default setup uses LLaVA-558K for multimodal alignment in stage 1 and LLaVA-665K for instruction tuning in stage 2.
 
 ## Evaluation data
 
@@ -43,6 +43,8 @@ The paths expected inside each benchmark directory are listed directly in `scrip
 
 ## Training settings
 
+The scripts provide the following defaults for an eight-GPU run:
+
 | Setting | Stage 1: alignment | Stage 2: instruction tuning |
 |---|---:|---:|
 | Dataset | LLaVA-558K | LLaVA-665K |
@@ -55,21 +57,35 @@ The paths expected inside each benchmark directory are listed directly in `scrip
 | Checkpoint interval | 500 steps | 500 steps |
 | Retained checkpoints | 2 | 2 |
 
-The Braco compressor and multimodal projector are optimized in both stages;
-the language model is also optimized in stage 2. The settings above use
-eight training GPUs. Each token budget has its own trained checkpoint.
+In this setup, the Braco compressor and multimodal projector are optimized
+in both stages, and the language model is also optimized in stage 2.
+Each configuration has its own trained checkpoint.
 
-The basis is DCT. Use `--pe` to enable or disable basis-coordinate embeddings
-and `--idct` to choose the coordinate organization:
+The default splits `(C, S) = (1, 3), (2, 5), (3, 7), (4, 9)` give 4, 9, 16,
+and 25 tokens. `C` is the side length of the retained DCT block, and `S` is
+the number of spatial residual tokens, giving `K = C² + S` tokens.
+For example, the 9-token configuration is:
 
 ```bash
-bash scripts/train_braco.sh 9 0 --pe true --idct true
+bash scripts/train_braco.sh --c 2 --s 5 --seed 0
+```
+
+This is equivalent to `bash scripts/train_braco.sh 9 0`. The `--seed` option
+defaults to `0`.
+
+The default basis is DCT; the compressor can be adapted to other bases.
+Use `--pe` to enable or disable basis-coordinate embeddings and `--idct`
+to choose the coordinate organization:
+
+```bash
+bash scripts/train_braco.sh 25 0 --pe true --idct true
 ```
 
 All token budgets default to `--pe true --idct false`.
 Both options accept `true` or `false` for every budget.
-Non-default combinations use a separate run directory; the example above
-saves to `$REPRO_ROOT/outputs/braco/k9/seed0-pe-true-idct-true/`.
+Run directories include C/S and PE/IDCT suffixes when they differ from the
+defaults. The IDCT example above saves to
+`$REPRO_ROOT/outputs/braco/k25/seed0-pe-true-idct-true/`.
 The resolved settings are saved in `metadata/resolved_protocol.yaml` and the checkpoint.
 
 `GRAD_ACCUM_STEPS` controls gradient accumulation in both stages (default: `1`).
@@ -80,12 +96,13 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 GRAD_ACCUM_STEPS=2 \
   bash scripts/train_braco.sh 9 0
 ```
 
-Spatial residual tokens pass through LayerNorm and a learned scale before
+By default, spatial residual tokens pass through LayerNorm and a learned scale before
 concatenation with the DCT backbone and projection into the LLM.
-The sparsemax temperature follows a cosine schedule: 2.0 to 1.2 over 2180
-steps in pre-training, then 1.2 to 0.8 over 4677 steps in instruction-tuning.
-Inference uses temperature 0.8. The budget splits and coordinate choices
-are defined in `configs/braco.yaml`.
+For sparsemax, one schedule to try is cosine annealing from 2.0 to 1.2 over
+2180 pre-training steps, then 1.2 to 0.8 over 4677 instruction-tuning steps,
+with an inference temperature of 0.8. The training defaults can be adjusted
+in `scripts/train_braco.sh`; `configs/braco.yaml` lists the default budget
+splits and coordinate settings.
 
 ## Evaluation workflow
 
@@ -95,13 +112,16 @@ Answers and available local scores are saved beneath the run's `evaluation/`
 directory. The launcher creates a `llava-braco` symlink to the stage-2 checkpoint
 for LLaVA's model-family detection.
 
-For a non-default configuration, pass the same options used for training:
+Pass the same options used for training:
 
 ```bash
-bash scripts/evaluate.sh 9 0 --pe true --idct true
+bash scripts/evaluate.sh --c 2 --s 5 --seed 0
+bash scripts/evaluate.sh 25 0 --pe true --idct true
 ```
 
-Inference reads PE and IDCT from the checkpoint configuration.
+Inference reads C, S, PE, and IDCT from the checkpoint configuration.
+For standalone use, construct `BracoCompressor(dim=1024, cutoff=2, residual_tokens=5)`
+for the 9-token configuration.
 
 Use the following metrics when reading the evaluator output:
 

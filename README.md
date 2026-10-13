@@ -30,19 +30,19 @@ Official implementation of **Braco**, a lightweight visual-token compressor for 
 
 ![Braco overview and accuracy-efficiency comparison](docs/assets/overview.png)
 
-Braco compresses 576 visual tokens to **4, 9, 16, or 25 tokens**. At 25 tokens, it retains **95.2% of the uncompressed model's benchmark-normalized accuracy** in our main LLaVA-v1.5-7B comparison.
+In our experiments, Braco compresses 576 visual tokens to **4, 9, 16, or 25 tokens**. At 25 tokens, it retains **95.2% of the uncompressed model's benchmark-normalized accuracy** in our main LLaVA-v1.5-7B comparison.
 
-Braco has four components: structured DCT truncation, input-independent basis-coordinate embeddings, budget-dependent orthogonal coordinate organization, and sparse spatial residual pooling.
+The provided implementation has four components: structured DCT truncation, input-independent basis-coordinate embeddings, orthogonal coordinate organization, and sparse spatial residual pooling.
 
 ![Braco's four-step token coder: basis choice, position embedding, coordinate organization, and spatial residual connection](docs/assets/method.png)
 
-The transform backbone captures global information, while the spatial branch pools localized evidence. Spatial residuals are normalized and scaled, then concatenated with the backbone to form a compact sequence of **K = C² + S** tokens for projection into the LLM.
+The transform backbone captures global information, while the spatial branch pools localized evidence. By default, spatial residuals are normalized and scaled, then concatenated with the backbone to form a compact sequence of **K = C² + S** tokens for projection into the LLM.
 
 The standalone PyTorch implementation is [`src/braco/compressor.py`](src/braco/compressor.py). LLaVA integration files are provided under [`integrations/`](integrations/).
 
 ## 🛠️ Setup
 
-Linux, CUDA 11.8, and Python 3.10.
+The setup below uses Linux, CUDA 11.8, and Python 3.10.
 
 ```bash
 conda env create -f environment.yml
@@ -61,27 +61,34 @@ Prepare the Vicuna-7B, CLIP, and dataset files following the [usage guide](docs/
 
 ## ⚙️ Training
 
-Train both stages on eight GPUs. Choose a token budget of `4`, `9`, `16`, or `25`:
+The default setup trains both stages on eight GPUs. For a 9-token run:
 
 ```bash
 # Token budget 9, seed 0
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 bash scripts/train_braco.sh 9 0
 ```
 
+The same run can be specified with `--c` and `--s`, where **K = C² + S**:
+
+```bash
+bash scripts/train_braco.sh --c 2 --s 5 --seed 0  # 9 tokens
+```
+
+The default basis is DCT, and you can adapt the compressor to other bases.
 All token budgets default to `--pe true --idct false`. Override either option
 with `--pe true|false` and `--idct true|false`, for example:
 
 ```bash
-bash scripts/train_braco.sh 9 0 --pe true --idct true
+bash scripts/train_braco.sh 25 0 --pe true --idct true
 ```
 
 IDCT's benefit can vary with the token budget and software/hardware environment.
-For extreme compression, we recommend trying `--idct false` first.
+For extreme compression, we recommend trying `--idct false` first. This setting usually works well.
 
 For four GPUs, set `GRAD_ACCUM_STEPS=2` and `CUDA_VISIBLE_DEVICES=0,1,2,3`
 to keep the same global batch sizes.
 
-With the default settings, the full checkpoint is saved to `$REPRO_ROOT/outputs/braco/k9/seed0/stage2`.
+The 9-token run saves its full checkpoint to `$REPRO_ROOT/outputs/braco/k9/seed0/stage2`.
 See [training settings](configs/braco.yaml) and [benchmark evaluation](docs/usage.md#evaluation-workflow) for details.
 
 ## 💬 Inference

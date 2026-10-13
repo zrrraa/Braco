@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
-  echo "Usage: $0 BUDGET SEED [--pe true|false] [--idct true|false]"
+  echo "Usage: $0 BUDGET SEED [--c C --s S] [--pe true|false] [--idct true|false]"
+  echo "   or: $0 --c C --s S [--seed SEED] [--pe true|false] [--idct true|false]"
+  echo "K=C^2+S; --seed defaults to 0."
   echo "Defaults for all token budgets: PE=true, IDCT=false. Basis: DCT."
   exit 0
 fi
@@ -19,7 +21,7 @@ fi
 REPO="${UPSTREAM_ROOT}/llava"
 STAGE1="${RUN_ROOT}/stage1"
 STAGE2="${RUN_ROOT}/stage2"
-echo "Braco: K=${BUDGET}, basis=DCT, PE=${USE_PE}, IDCT=${LOW_IDCT}; output=${RUN_ROOT}"
+echo "Braco: K=${BUDGET}, C=${C}, S=${S}, basis=DCT, PE=${USE_PE}, IDCT=${LOW_IDCT}; output=${RUN_ROOT}"
 
 require_dir "${REPO}"
 require_dir "${MODEL_ROOT}/vicuna-7b-v1.5"

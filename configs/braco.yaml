@@ -4,6 +4,7 @@ native_visual_tokens: 576
 grid: [24, 24]
 vision_feature_layer: -2
 seed: 0
+# Default token budgets.
 budgets: [25, 16, 9, 4]
 
 training:

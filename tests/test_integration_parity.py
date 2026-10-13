@@ -173,3 +173,26 @@ def test_backbone_only_output_is_contiguous(idct) -> None:
     assert output.shape == (2, 16, 16)
     assert output.is_contiguous()
     assert "spatial_norm.weight" in compressor.state_dict()
+
+
+@pytest.mark.parametrize("c,s", [(2, 6), (1, 8), (3, 0)])
+@pytest.mark.parametrize("idct", [False, True])
+def test_custom_split_forward_and_backward(c, s, idct) -> None:
+    torch.manual_seed(29)
+    integrated = load_integrated_module().FourierFreqSelect(
+        in_dim=16, C=c, spatial_keep=s, low_idct=idct,
+        polar_include_raw=False, temperature=0.8, dct_detach=False,
+    )
+    torch.manual_seed(29)
+    standalone = BracoCompressor(
+        dim=16, cutoff=c, residual_tokens=s,
+        coordinate_mode="idct" if idct else "coefficients", detach_transform=False,
+    )
+    tokens = torch.randn(2, 576, 16, requires_grad=True)
+    expected, actual = integrated(tokens), standalone(tokens)
+    assert actual.shape == (2, c*c+s, 16)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    grad = torch.randn_like(expected)
+    expected_grad = torch.autograd.grad(expected, tokens, grad)[0]
+    actual_grad = torch.autograd.grad(actual, tokens, grad)[0]
+    torch.testing.assert_close(actual_grad, expected_grad, rtol=0, atol=0)

@@ -190,6 +190,9 @@ figcaption {
   line-height: 1.65;
   text-align: center;
 }
+.overview figcaption {
+  max-width: none;
+}
 .paper-section {
   margin-top: 52px;
 }

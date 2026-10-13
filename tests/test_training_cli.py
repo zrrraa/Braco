@@ -9,6 +9,8 @@ import sys
 import pytest
 import yaml
 
+from scripts.validate_config import validate
+
 
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(os.name == "nt", reason="Training launchers target Linux")
@@ -97,6 +99,7 @@ def test_two_stages_metadata_and_evaluation_select_same_run(launchers, budget, o
     assert config["seed"] == 7 and config["selected_budget"] == budget
     assert config["methods"]["braco"]["use_polar_pe"] is pe
     assert config["methods"]["braco"]["split"][budget]["low_idct"] is idct
+    validate(config)
     result = run(launchers, "evaluate.sh", budget, 7, *options)
     assert result.returncode == 0, result.stderr
     evaluated = (out / "evaluation/models.txt").read_text().splitlines()
@@ -105,11 +108,65 @@ def test_two_stages_metadata_and_evaluation_select_same_run(launchers, budget, o
 
 
 @pytest.mark.parametrize("args", [[], [9], [9, 0, "--pe"], [9, 0, "--idct=maybe"],
-                                  [9, 0, "--pe", "0"], [9, 0, "--unknown"], [9, -1], [17, 0]])
+                                  [9, 0, "--pe", "0"], [9, 0, "--unknown"], [9, -1], [17, 0],
+                                  ["--c", 2], ["--s", 6], ["--c=", "--s="],
+                                  ["--c", 0, "--s", 6], ["--c", 25, "--s", 0],
+                                  ["--c", 2, "--s", -1], ["--c", 2, "--s", "1.5"],
+                                  ["--c", 2, "--s", 573], ["--c", 2, "--s", 6, "--seed", -1],
+                                  [9, 0, "--c", 2, "--s", 6], [9, 0, "--seed", 1],
+                                  [0, 0], [577, 0]])
 def test_invalid_options_do_not_launch_training(launchers, args):
     _, work, _ = launchers
     result = run(launchers, "train_braco.sh", *args)
     assert result.returncode == 2 and not (work / "launches.jsonl").exists()
+
+
+@pytest.mark.parametrize("args,c,s,seed,suffix", [
+    (["--c", 2, "--s", 6], 2, 6, 0, "-c2-s6"),
+    (["--c=2", "--s=6", "--seed=3"], 2, 6, 3, "-c2-s6"),
+    ([10, 3, "--c", 2, "--s", 6], 2, 6, 3, "-c2-s6"),
+    ([9, 0, "--c", 1, "--s", 8], 1, 8, 0, "-c1-s8"),
+    (["--c", 2, "--s", 5], 2, 5, 0, ""),
+    (["--c", 3, "--s", 0], 3, 0, 0, "-c3-s0"),
+    (["--c", 24, "--s", 0], 24, 0, 0, "-c24-s0"),
+])
+def test_custom_splits_train_record_and_evaluate(launchers, args, c, s, seed, suffix):
+    _, work, _ = launchers
+    budget = c*c + s
+    options = ["--pe", "false", "--idct", "true"]
+    result = run(launchers, "train_braco.sh", *args, *options)
+    assert result.returncode == 0, result.stderr
+    commands = [json.loads(line) for line in (work / "launches.jsonl").read_text().splitlines()]
+    out = work / f"outputs/braco/k{budget}/seed{seed}{suffix}-pe-false-idct-true"
+    assert len(commands) == 2
+    for stage, command in enumerate(commands, start=1):
+        assert command[command.index("--mm_fourier_C")+1] == str(c)
+        assert command[command.index("--mm_fourier_spatial_keep")+1] == str(s)
+        assert command[command.index("--output_dir")+1] == str(out / f"stage{stage}")
+    assert commands[1][commands[1].index("--pretrain_mm_mlp_adapter")+1] == str(out / "stage1/mm_projector.bin")
+    config = yaml.safe_load((out / "metadata/resolved_protocol.yaml").read_text())
+    validate(config)
+    assert config["selected_budget"] == budget and config["seed"] == seed
+    assert config["methods"]["braco"]["split"][budget] == {"C": c, "S": s, "low_idct": True}
+    assert config["methods"]["braco"]["use_polar_pe"] is False
+    result = run(launchers, "evaluate.sh", *args, *options)
+    assert result.returncode == 0, result.stderr
+    assert (out / "llava-braco").resolve() == out / "stage2"
+    assert (out / "evaluation/models.txt").read_text().splitlines() == [str(out / "llava-braco")] * 8
+
+
+def test_same_budget_different_splits_do_not_overwrite(launchers):
+    _, work, _ = launchers
+    runs = [([9, 0], "seed0"), (["--c", 1, "--s", 8], "seed0-c1-s8")]
+    for args, _ in runs:
+        result = run(launchers, "train_braco.sh", *args)
+        assert result.returncode == 0, result.stderr
+    for args, name in runs:
+        result = run(launchers, "evaluate.sh", *args)
+        assert result.returncode == 0, result.stderr
+        out = work / "outputs/braco/k9" / name
+        assert (out / "COMPLETE").is_file()
+        assert (out / "evaluation/models.txt").read_text().splitlines() == [str(out / "llava-braco")] * 8
 
 
 @pytest.mark.parametrize("script", ["train_braco.sh", "evaluate.sh"])
@@ -118,3 +175,4 @@ def test_help_without_model_or_data_paths(script):
     result = subprocess.run(["bash", str(ROOT / "scripts" / script), "--help"],
                             env=env, text=True, capture_output=True)
     assert result.returncode == 0 and "--pe" in result.stdout and "--idct" in result.stdout
+    assert "--c" in result.stdout and "--s" in result.stdout
