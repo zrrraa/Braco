@@ -30,9 +30,9 @@ Official implementation of **Braco**, a lightweight visual-token compressor for 
 
 ![Braco overview and accuracy-efficiency comparison](docs/assets/overview.png)
 
-In our experiments, Braco compresses 576 visual tokens to **4, 9, 16, or 25 tokens**. At 25 tokens, it retains **95.2% of the uncompressed model's benchmark-normalized accuracy** in our main LLaVA-v1.5-7B comparison.
+In our main experiments, Braco compresses 576 visual tokens to **4, 9, 16, or 25 tokens**. At 25 tokens, it retains **95.2% of the uncompressed model's benchmark-normalized accuracy** in our main LLaVA-v1.5-7B comparison.
 
-The provided implementation has four components: structured DCT truncation, input-independent basis-coordinate embeddings, orthogonal coordinate organization, and sparse spatial residual pooling.
+The provided implementation has four components: structured truncation, input-independent basis-coordinate embeddings, orthogonal coordinate organization, and sparse spatial residual pooling.
 
 ![Braco's four-step token coder: basis choice, position embedding, coordinate organization, and spatial residual connection](docs/assets/method.png)
 
@@ -68,7 +68,7 @@ The default setup trains both stages on eight GPUs. For a 9-token run:
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 bash scripts/train_braco.sh 9 0
 ```
 
-The same run can be specified with `--c` and `--s`, where **K = C² + S**:
+For 4, 9, 16, and 25 tokens, the default `(C, S)` splits are `(1, 3)`, `(2, 5)`, `(3, 7)`, and `(4, 9)`, respectively (**K = C² + S**):
 
 ```bash
 bash scripts/train_braco.sh --c 2 --s 5 --seed 0  # 9 tokens
@@ -84,9 +84,6 @@ bash scripts/train_braco.sh 25 0 --pe true --idct true
 
 IDCT's benefit can vary with the token budget and software/hardware environment.
 For extreme compression, we recommend trying `--idct false` first. This setting usually works well.
-
-For four GPUs, set `GRAD_ACCUM_STEPS=2` and `CUDA_VISIBLE_DEVICES=0,1,2,3`
-to keep the same global batch sizes.
 
 The 9-token run saves its full checkpoint to `$REPRO_ROOT/outputs/braco/k9/seed0/stage2`.
 See [training settings](configs/braco.yaml) and [benchmark evaluation](docs/usage.md#evaluation-workflow) for details.
